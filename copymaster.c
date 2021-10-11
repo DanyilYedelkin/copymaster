@@ -5,9 +5,19 @@
 
 #include "options.h"
 
+#include <unistd.h>
+#include <stdbool.h>
+#include <time.h>
+#include <fcntl.h>
+
 
 void FatalError(char c, const char* msg, int exit_status);
 void PrintCopymasterOptions(struct CopymasterOptions* cpm_options);
+
+void fastCopy(struct CopymasterOptions cpm_options, char flag);
+void slowCopy(struct CopymasterOptions cmp_options);
+void openInfile(int *file, struct CopymasterOptions cpm_options, char flag);
+void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag);
 
 
 int main(int argc, char* argv[])
@@ -21,6 +31,16 @@ int main(int argc, char* argv[])
     // Vypis hodnot prepinacov odstrante z finalnej verzie
     
     PrintCopymasterOptions(&cpm_options);
+
+    if(argc == 3){
+        fastCopy(cpm_options, ' ');
+    }
+    if(cpm_options.fast){
+        fastCopy(cpm_options, 'f');
+    }
+    if(cpm_options.slow){
+        slowCopy(cpm_options);
+    }
     
     //-------------------------------------------------------------------
     // Osetrenie prepinacov pred kopirovanim
@@ -30,6 +50,7 @@ int main(int argc, char* argv[])
         fprintf(stderr, "CHYBA PREPINACOV\n"); 
         exit(EXIT_FAILURE);
     }
+
     
     // TODO Nezabudnut dalsie kontroly kombinacii prepinacov ...
     
@@ -49,6 +70,8 @@ int main(int argc, char* argv[])
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
     }
+
+
         
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
@@ -57,6 +80,65 @@ int main(int argc, char* argv[])
     // TODO Implementovat osetrenie prepinacov po kopirovani
     
     return 0;
+}
+
+void openInfile(int *file, struct CopymasterOptions cpm_options, char flag){
+    /**file = open(cpm_options.infile, O_RDONLY) == -1;
+
+    if(*file == -1){
+        FatalError(flag, "infile", 21);
+    }*/
+    if((*file = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError(flag, "infile", 21);
+    }
+}
+
+void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
+    /**file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+
+    if(*file == -1){
+        FatalError(flag, "infile", 21);
+    }*/
+    if((*file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0777)) == -1){
+        FatalError(flag, "outfile", 21);
+    }
+}
+
+void fastCopy(struct CopymasterOptions cpm_options, char flag){
+    long lengthBuffer;
+    int infile;
+    int outfile;
+    int words;
+
+    openInfile(&infile, cpm_options, flag);
+    openOutfile(&outfile, cpm_options, flag);
+    
+    lengthBuffer = lseek(infile, 0, SEEK_END);
+    char buffer[lengthBuffer];
+
+    lseek(infile, 0, SEEK_SET);
+    if((words = read(infile, &buffer, lengthBuffer)) > 0){
+        write(outfile, &buffer, words);
+    }
+
+    close(infile);
+    close(outfile);
+}
+void slowCopy(struct CopymasterOptions cpm_options){
+    char buffer[2];
+    int infile;
+    int outfile;
+    int temp;
+
+    openInfile(&infile, cpm_options, 's');
+    openOutfile(&outfile, cpm_options, 's');
+
+    while((temp = read(infile, &buffer, 1)) > 0){
+        write(outfile, &buffer, temp);
+    }
+
+    close(infile);
+    close(outfile);
 }
 
 
