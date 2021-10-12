@@ -6,9 +6,12 @@
 #include "options.h"
 
 #include <unistd.h>
-#include <stdbool.h>
 #include <time.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdbool.h>
 
 
 void FatalError(char c, const char* msg, int exit_status);
@@ -18,6 +21,10 @@ void fastCopy(struct CopymasterOptions cpm_options, char flag);
 void slowCopy(struct CopymasterOptions cmp_options);
 void openInfile(int *file, struct CopymasterOptions cpm_options, char flag);
 void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag);
+void createFile(struct CopymasterOptions cpm_options);
+void overwriteFile(struct CopymasterOptions cpm_options);
+void appendFile(struct CopymasterOptions cpm_options);
+bool checkOpen(int infile, int outfile);
 
 
 int main(int argc, char* argv[])
@@ -25,21 +32,36 @@ int main(int argc, char* argv[])
     struct CopymasterOptions cpm_options = ParseCopymasterOptions(argc, argv);
 
     //-------------------------------------------------------------------
-    // Kontrola hodnot prepinacov
+    // Kontrola hodnot prepinacovs
     //-------------------------------------------------------------------
 
     // Vypis hodnot prepinacov odstrante z finalnej verzie
     
     PrintCopymasterOptions(&cpm_options);
 
+    // Bez akéhokoľvek prepínača 
     if(argc == 3){
         fastCopy(cpm_options, ' ');
     }
+    // -f (--fast)
     if(cpm_options.fast){
         fastCopy(cpm_options, 'f');
     }
+    // -s (--slow)
     if(cpm_options.slow){
         slowCopy(cpm_options);
+    }
+    // -c 777 (--create 777)
+    if(cpm_options.create){
+        createFile(cpm_options);
+    }
+    // -o (--overwrite)
+    if(cpm_options.overwrite){
+        overwriteFile(cpm_options);
+    }
+    // -a (--append)
+    if(cpm_options.append){
+        appendFile(cpm_options);
     }
     
     //-------------------------------------------------------------------
@@ -104,6 +126,76 @@ void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
     }
 }
 
+void createFile(struct CopymasterOptions cpm_options){
+    char buffer[3];
+    int nemberWord;
+    int infile;
+    int outfile;
+
+    openInfile(&infile, cpm_options, 'c');
+
+    umask(0);
+
+    if(cpm_options.create_mode > 777 || cpm_options.create_mode < 1){
+        FatalError('c', "ZLE PRAVA", 23);
+    }
+
+    if ((outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_EXCL, cpm_options.create_mode)) == -1){
+        FatalError('c', "SUBOR EXISTUJE", 23);
+    }
+
+    while((nemberWord = read(infile, &buffer, 1)) > 0){
+        if(checkOpen(infile, outfile)){
+            FatalError('c', "INA CHYBA", 23);
+        }
+        write(outfile, &buffer, nemberWord);
+    }
+
+    close(infile);
+    close(outfile);
+}
+
+void overwriteFile(struct CopymasterOptions cpm_options){
+    char buffer[4];
+    int numberWord;
+    int infile;
+    int outfile;
+
+    openInfile(&infile, cpm_options, 'o');
+
+    if((outfile = open(cpm_options.outfile, O_WRONLY | O_TRUNC)) == -1){
+        printf("Error:\no:%d\no:%s\no:%s\n", errno, strerror(errno), "SUBOR NEEXISTUJE");
+        exit(24);
+    }
+
+    while((numberWord = read(infile, &buffer, 1)) > 0 ){
+        write(outfile, &buffer, numberWord);
+    }
+
+    close(infile);
+    close(outfile);
+}
+
+void appendFile(struct CopymasterOptions cpm_options){
+    char buffer[4];
+    int numberWord;
+    int infile;
+    int outfile;
+
+    openInfile(&infile, cpm_options, 'a');
+
+    if((outfile = open(cpm_options.outfile, O_WRONLY | O_APPEND)) == -1){
+        FatalError('a', "SUBOR NEEXISTUJE", 22);
+    }
+
+    while((numberWord = read(infile, &buffer, 1)) > 0 ){
+        write(outfile, &buffer, numberWord);
+    }
+
+    close(infile);
+    close(outfile);
+}
+
 void fastCopy(struct CopymasterOptions cpm_options, char flag){
     long lengthBuffer;
     int infile;
@@ -139,6 +231,10 @@ void slowCopy(struct CopymasterOptions cpm_options){
 
     close(infile);
     close(outfile);
+}
+
+bool checkOpen(int infile, int outfile){
+    return infile == -1 || outfile == -2;
 }
 
 
