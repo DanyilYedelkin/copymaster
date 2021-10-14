@@ -106,6 +106,104 @@ int main(int argc, char* argv[])
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
 
+        DIR *dirFile = opendir(cpm_options.infile);
+        struct dirent *direntFile;
+        struct stat statFile;
+        char pathFile[100];
+        char buffer[200];
+        char words[10];
+
+        if(stat(cpm_options.infile, &statFile) < 0){
+            perror("chyba v stat()"); 
+        }
+
+        if (!S_ISDIR(statFile.st_mode)){
+            FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
+        }
+
+        if(dirFile) {
+            while((direntFile = readdir(dirFile)) != NULL) {
+
+                if(strcmp(direntFile->d_name, "..") && strcmp(direntFile->d_name, ".")){
+                    
+                    strcat(pathFile, cpm_options.infile);
+                    strcat(pathFile, "/");
+                    strcat(pathFile, direntFile->d_name);
+
+                    struct stat statMain;
+                    if(stat(pathFile, &statMain) < 0){
+                        perror("chyba v stat()");
+                    }
+
+                    struct passwd* passwordUid = getpwuid(statMain.st_uid);
+                    struct group* groupUid = getgrgid(statMain.st_gid);
+
+                    if(direntFile->d_type == DT_DIR){
+                        strcat(buffer, "d");
+                    } else {
+                        strcat(buffer, "-");
+                    }
+                    
+                    // for owner of the file
+                    statMain.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statMain.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statMain.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
+                    // for group of the file
+                    statMain.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statMain.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statMain.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
+                    // for reader of the file
+                    statMain.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statMain.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statMain.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
+
+                    strcat(buffer, " ");
+                    sprintf(words, "%ld", (long)statMain.st_nlink);
+                    strcat(buffer, words);
+                    words[0] = 0;
+                    strcat(buffer, " ");
+
+                    if(passwordUid != NULL) {
+                        strcat(buffer, passwordUid->pw_name);
+                    } else{
+                        perror("passwordUid is null");
+                    }
+
+                    strcat(buffer, " ");
+
+                    if(groupUid != NULL){
+                        strcat(buffer, groupUid->gr_name);
+                    } else{
+                        perror("groupUid is null");
+                    }
+
+                    strcat(buffer, " ");
+                    sprintf(words, "%d", (int)statMain.st_size);
+                    strcat(buffer, words);
+                    words[0] = 0;
+                    strcat(buffer, "\t");
+
+                    //for time
+                    char time[32];
+                    strftime(time, 32, "%b %e %H:%M", localtime(&statMain.st_mtime));
+                    strcat(buffer, time);
+
+                    //for name of the file
+                    strcat(buffer, " ");
+                    strcat(buffer, direntFile->d_name);
+                    printf("%s\n", buffer);
+
+                    buffer[0] = 0;
+                    pathFile[0] = 0;
+                }
+            }
+            closedir(dirFile);
+
+        } else{
+            FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
+            closedir(dirFile);
+        }
+
     }
 
     // -d (--delete)
@@ -200,8 +298,7 @@ void overwriteFile(struct CopymasterOptions cpm_options){
     openInfile(&infile, cpm_options, 'o');
 
     if((outfile = open(cpm_options.outfile, O_WRONLY | O_TRUNC)) == -1){
-        printf("Error:\no:%d\no:%s\no:%s\n", errno, strerror(errno), "SUBOR NEEXISTUJE");
-        exit(24);
+        FatalError('o', "SUBOR NEEXISTUJE", 24);
     }
 
     while((numberWord = read(infile, &buffer, 1)) > 0 ){
