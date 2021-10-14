@@ -227,6 +227,12 @@ int main(int argc, char* argv[])
     if(cpm_options.link){
         linkFile(cpm_options);
     }
+    // -u UTR,UTR,.... (--umask UTR,UTR,...)
+    if(cpm_options.umask){
+        mode_t newRights = umask(777);
+
+        umask(newRights);
+    }
 
         
     //-------------------------------------------------------------------
