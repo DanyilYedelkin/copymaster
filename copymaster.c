@@ -30,6 +30,7 @@ void lseekFile(struct CopymasterOptions cpm_options);
 void deleteOptFile(struct CopymasterOptions cpm_options);
 void chmodFile(struct CopymasterOptions cpm_options);
 void truncateFile(struct CopymasterOptions cpm_options);
+void inodeFile(struct CopymasterOptions cpm_options);
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
@@ -118,6 +119,10 @@ int main(int argc, char* argv[])
     // -t size (--truncate size)
     if(cpm_options.truncate){
         truncateFile(cpm_options);
+    }
+    // -i number (--inode number)
+    if(cpm_options.inode){
+        inodeFile(cpm_options);
     }
 
         
@@ -329,12 +334,43 @@ void chmodFile(struct CopymasterOptions cpm_options){
 void truncateFile(struct CopymasterOptions cpm_options){
     fastCopy(cpm_options, 't');
 
-    
+
     int truncateMyCode = truncate(cpm_options.infile, cpm_options.truncate_size);
 
     if (truncateMyCode == -1){
         FatalError('t', "ZAPORNA VELKOST", 31);
     }
+}
+
+void inodeFile(struct CopymasterOptions cpm_options){
+    struct stat statFile;
+    stat(cpm_options.infile, &statFile);
+    int infile;
+    int outfile;
+
+    infile = open(cpm_options.infile, O_RDONLY);
+    outfile = open(cpm_options.outfile, O_WRONLY);
+
+    if(checkOpen(infile, outfile)){
+        FatalError('i', "INA CHYBA", 27);
+    }
+
+    int lengthBuffer = lseek(infile, 0, SEEK_END);
+    char buffer[lengthBuffer];
+
+    if(cpm_options.inode_number != statFile.st_ino){
+        FatalError('i', "ZLY INODE", 27);
+    }
+    if(!S_ISREG(statFile.st_mode)){
+        FatalError('i', "ZLY TYP VSTUPNEHO SUBORU", 27);
+    }
+
+    if((read(infile, &buffer, lengthBuffer) == -1) || (write(outfile, &buffer, lengthBuffer) == -1)){
+        FatalError('i', "INA CHYBA", 27);
+    }
+
+    close(infile);
+    close(outfile);
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
