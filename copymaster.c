@@ -397,7 +397,7 @@ void linkFile(struct CopymasterOptions cpm_options){
     close(outfile);
 
     if(link(cpm_options.infile, cpm_options.outfile) == 0){
-        return 0;
+        return;
     } else{
         FatalError('K', "INA CHYBA", 30);
     }
