@@ -31,6 +31,7 @@ void deleteOptFile(struct CopymasterOptions cpm_options);
 void chmodFile(struct CopymasterOptions cpm_options);
 void truncateFile(struct CopymasterOptions cpm_options);
 void inodeFile(struct CopymasterOptions cpm_options);
+void linkFile(struct CopymasterOptions cpm_options);
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
@@ -123,6 +124,10 @@ int main(int argc, char* argv[])
     // -i number (--inode number)
     if(cpm_options.inode){
         inodeFile(cpm_options);
+    }
+    // -K (--link)
+    if(cpm_options.link){
+        linkFile(cpm_options);
     }
 
         
@@ -345,13 +350,13 @@ void truncateFile(struct CopymasterOptions cpm_options){
 void inodeFile(struct CopymasterOptions cpm_options){
     struct stat statFile;
     stat(cpm_options.infile, &statFile);
+
     int infile;
     int outfile;
 
     infile = open(cpm_options.infile, O_RDONLY);
-    outfile = open(cpm_options.outfile, O_WRONLY);
 
-    if(checkOpen(infile, outfile)){
+    if(infile == -1){
         FatalError('i', "INA CHYBA", 27);
     }
 
@@ -365,12 +370,38 @@ void inodeFile(struct CopymasterOptions cpm_options){
         FatalError('i', "ZLY TYP VSTUPNEHO SUBORU", 27);
     }
 
+    outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, 0777);
+    if(outfile == -1){
+        FatalError('i', "INA CHYBA", 27);
+    }
+
     if((read(infile, &buffer, lengthBuffer) == -1) || (write(outfile, &buffer, lengthBuffer) == -1)){
         FatalError('i', "INA CHYBA", 27);
     }
 
     close(infile);
     close(outfile);
+}
+
+void linkFile(struct CopymasterOptions cpm_options){
+    int infile;
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('K', "VSTUPNY SUBOR NEEXISTUJE", 30);
+    }
+    close(infile);
+
+    int outfile;
+    if((outfile = open(cpm_options.outfile, O_WRONLY)) != -1){
+        FatalError('K', "VYSTUPNY SUBOR UZ EXISTUJE", 30);
+    }
+    close(outfile);
+
+    if(link(cpm_options.infile, cpm_options.outfile) == 0){
+        return 0;
+    } else{
+        FatalError('K', "INA CHYBA", 30);
+    }
+
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
