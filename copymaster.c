@@ -311,6 +311,9 @@ void chmodFile(struct CopymasterOptions cpm_options){
     if((read(infile, &buffer, lengthBuffer) == -1) || (write(outfile, &buffer, lengthBuffer) == -1)){
         FatalError('m', "INA CHYBA", 34);
     }
+    if(fchmod(outfile, cpm_options.chmod_mode) < 0){
+        FatalError('m', "ZLE PRAVA", 34);
+    }
 
     close(infile);
     close(outfile);
