@@ -12,6 +12,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <pwd.h>
+#include <grp.h>
 
 
 void FatalError(char c, const char* msg, int exit_status);
@@ -24,6 +26,10 @@ void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag);
 void createFile(struct CopymasterOptions cpm_options);
 void overwriteFile(struct CopymasterOptions cpm_options);
 void appendFile(struct CopymasterOptions cpm_options);
+void lseekFile(struct CopymasterOptions cpm_options);
+void deleteOptFile(struct CopymasterOptions cpm_options);
+void chmodFile(struct CopymasterOptions cpm_options);
+int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
 
@@ -63,6 +69,10 @@ int main(int argc, char* argv[])
     if(cpm_options.append){
         appendFile(cpm_options);
     }
+    // -l (--lseek) (-l x,pos1,pos2,num (--lseek x,pos1,pos2,num))
+    if(cpm_options.lseek){
+        lseekFile(cpm_options);
+    }
     
     //-------------------------------------------------------------------
     // Osetrenie prepinacov pred kopirovanim
@@ -89,10 +99,19 @@ int main(int argc, char* argv[])
     // Vypis adresara
     //-------------------------------------------------------------------
     
+    // -D (--directory)
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
+
     }
 
+    // -d (--delete)
+    if(cpm_options.delete_opt){
+        deleteOptFile(cpm_options);
+    }
+    if(cpm_options.chmod){
+        chmodFile(cpm_options);
+    }
 
         
     //-------------------------------------------------------------------
@@ -121,7 +140,7 @@ void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
     if(*file == -1){
         FatalError(flag, "infile", 21);
     }*/
-    if((*file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0777)) == -1){
+    if((*file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1){
         FatalError(flag, "outfile", 21);
     }
 }
@@ -220,13 +239,13 @@ void slowCopy(struct CopymasterOptions cpm_options){
     char buffer[2];
     int infile;
     int outfile;
-    int temp;
+    int words;
 
     openInfile(&infile, cpm_options, 's');
     openOutfile(&outfile, cpm_options, 's');
 
-    while((temp = read(infile, &buffer, 1)) > 0){
-        write(outfile, &buffer, temp);
+    while((words = read(infile, &buffer, 1)) > 0){
+        write(outfile, &buffer, words);
     }
 
     close(infile);
@@ -237,6 +256,74 @@ bool checkOpen(int infile, int outfile){
     return infile == -1 || outfile == -2;
 }
 
+void lseekFile(struct CopymasterOptions cpm_options){
+    int infile;
+    int outfile;
+    char buffer[(int)cpm_options.lseek_options.num];
+    int bytesOfRead;
+    int bytesOfWrite;
+
+    openInfile(&infile, cpm_options, 'l');
+
+    if((outfile = open(cpm_options.outfile, O_WRONLY)) == -1){
+        FatalError('l', "SUBOR NEEXISTUJE", 33);
+    }
+    if(lseek(infile, cpm_options.lseek_options.pos1, SEEK_SET) == -1){
+        FatalError('l', "CHYBA POZICIE infile", 33);
+    }
+    if(lseek(outfile, cpm_options.lseek_options.pos2, cpm_options.lseek_options.x) == -1){
+        FatalError('l', "CHYBA POZICIE outfile", 33);
+    }
+    if((bytesOfRead = read(infile, &buffer, cpm_options.lseek_options.num)) > 0){
+        bytesOfWrite = write(outfile, &buffer, (size_t)bytesOfRead);
+
+        if(bytesOfRead != bytesOfWrite){
+            FatalError('l', "INA CHYBA", 33);
+        }
+    }
+}
+
+void deleteOptFile(struct CopymasterOptions cpm_options){
+    fastCopy(cpm_options, 'd');
+
+    if(regularFile(cpm_options.infile)) {
+        unlink(cpm_options.infile);
+    } else{
+        FatalError('d', "SUBOR NEBOL ZMAZANY", 26);
+    }
+}
+
+void chmodFile(struct CopymasterOptions cpm_options){
+    int infile = open(cpm_options.infile, O_RDONLY);
+    int outfile = open(cpm_options.outfile, O_WRONLY);
+
+    if(cpm_options.chmod_mode > 777 || cpm_options.chmod_mode < 1){
+        FatalError('m', "ZLE PRAVA", 34);
+    } 
+    if(checkOpen(infile, outfile)){
+        FatalError('m', "INA CHYBA", 34);
+    }
+
+    int lengthBuffer = lseek(infile, 0, SEEK_END);
+    char buffer[lengthBuffer];
+
+    lseek(infile, 0, SEEK_SET);
+    if((read(infile, &buffer, lengthBuffer) == -1) || (write(outfile, &buffer, lengthBuffer) == -1)){
+        FatalError('m', "INA CHYBA", 34);
+    }
+
+    close(infile);
+    close(outfile);
+}
+
+//https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
+int regularFile(const char *path){
+    struct stat stPath;
+    stat(path, &stPath);
+
+    //Linux manual (man stat)
+    return S_ISREG(stPath.st_mode);
+}
 
 void FatalError(char c, const char* msg, int exit_status)
 {
