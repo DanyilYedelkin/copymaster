@@ -327,13 +327,14 @@ void chmodFile(struct CopymasterOptions cpm_options){
 }
 
 void truncateFile(struct CopymasterOptions cpm_options){
+    fastCopy(cpm_options, 't');
+
+    
     int truncateMyCode = truncate(cpm_options.infile, cpm_options.truncate_size);
 
     if (truncateMyCode == -1){
         FatalError('t', "ZAPORNA VELKOST", 31);
     }
-
-    fastCopy(cpm_options, 't');
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
