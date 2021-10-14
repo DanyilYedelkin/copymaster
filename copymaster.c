@@ -295,7 +295,7 @@ void deleteOptFile(struct CopymasterOptions cpm_options){
 
 void chmodFile(struct CopymasterOptions cpm_options){
     int infile = open(cpm_options.infile, O_RDONLY);
-    int outfile = open(cpm_options.outfile, O_WRONLY);
+    int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, cpm_options.chmod_mode);
 
     if(cpm_options.chmod_mode > 777 || cpm_options.chmod_mode < 1){
         FatalError('m', "ZLE PRAVA", 34);
