@@ -35,6 +35,7 @@ void linkFile(struct CopymasterOptions cpm_options);
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
+void checkOptions(int optionsAmount, int givenOptions[], int legalOptions[]);
 
 int main(int argc, char* argv[])
 {
@@ -42,6 +43,12 @@ int main(int argc, char* argv[])
 
     //-------------------------------------------------------------------
     // Kontrola hodnot prepinacovs
+
+    int options = 14;
+    int legalOptions[options];
+    int givenOptions[options];
+
+    checkOptions(options, givenOptions, legalOptions);
     //-------------------------------------------------------------------
 
     // Vypis hodnot prepinacov odstrante z finalnej verzie
@@ -514,6 +521,15 @@ int regularFile(const char *path){
 
     //Linux manual (man stat)
     return S_ISREG(stPath.st_mode);
+}
+
+void checkOptions(int optionsAmount, int givenOptions[], int legalOptions[]){
+    for (int i = 0; i < optionsAmount; i++){
+        if((givenOptions[i] == 1) && (legalOptions[i] == 0)){
+            fprintf(stderr, "CHYBA PREPINACOV\n"); 
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 void FatalError(char c, const char* msg, int exit_status)
