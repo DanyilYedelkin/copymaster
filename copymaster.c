@@ -327,9 +327,9 @@ void chmodFile(struct CopymasterOptions cpm_options){
 }
 
 void truncateFile(struct CopymasterOptions cpm_options){
-    int truncateCode = truncate(cpm_options.infile, cpm_options.truncate_size);
+    int truncateMyCode = truncate(cpm_options.infile, cpm_options.truncate_size);
 
-    if (truncateCode == -1){
+    if (truncateMyCode == -1){
         FatalError('t', "ZAPORNA VELKOST", 31);
     }
 
