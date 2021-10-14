@@ -29,6 +29,7 @@ void appendFile(struct CopymasterOptions cpm_options);
 void lseekFile(struct CopymasterOptions cpm_options);
 void deleteOptFile(struct CopymasterOptions cpm_options);
 void chmodFile(struct CopymasterOptions cpm_options);
+void truncateFile(struct CopymasterOptions cpm_options);
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
@@ -109,8 +110,14 @@ int main(int argc, char* argv[])
     if(cpm_options.delete_opt){
         deleteOptFile(cpm_options);
     }
+    // -m 0777 (--chmod 0777)
     if(cpm_options.chmod){
         chmodFile(cpm_options);
+    }
+
+    // -t size (--truncate size)
+    if(cpm_options.truncate){
+        truncateFile(cpm_options);
     }
 
         
@@ -317,6 +324,16 @@ void chmodFile(struct CopymasterOptions cpm_options){
 
     close(infile);
     close(outfile);
+}
+
+void truncateFile(struct CopymasterOptions cpm_options){
+    int truncateCode = truncate(cpm_options.infile, cpm_options.truncate_size);
+
+    if (truncateCode == -1){
+        FatalError('t', "ZAPORNA VELKOST", 31);
+    }
+
+    fastCopy(cpm_options, 't');
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
