@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     int legalOptions[options];
     int givenOptions[options];
 
-    checkOptions(options, givenOptions, legalOptions);
+    //checkOptions(options, givenOptions, legalOptions);
     //-------------------------------------------------------------------
 
     // Vypis hodnot prepinacov odstrante z finalnej verzie
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
 
-        DIR *dirFile = opendir(cpm_options.infile);
+        DIR *dirFile;
         struct dirent *direntFile;
         struct stat statFile;
         char pathFile[100];
@@ -127,6 +127,8 @@ int main(int argc, char* argv[])
         if (!S_ISDIR(statFile.st_mode)){
             FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
         }
+
+        dirFile = opendir(cpm_options.infile);
 
         if(dirFile) {
             while((direntFile = readdir(dirFile)) != NULL) {
@@ -236,6 +238,8 @@ int main(int argc, char* argv[])
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
     if(cpm_options.umask){
+        int infile = open(cpm_options.infile, O_RDONLY);
+        int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT);
         mode_t newRights = umask(777);
 
         umask(newRights);
