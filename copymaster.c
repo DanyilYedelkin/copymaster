@@ -234,7 +234,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 sprintf(info, "%d", (int)statFiles.st_size);
                 strcat(buffer, info);
                 info[0] = 0;
-                strcat(buffer, "\t");
+                strcat(buffer, " ");
 
                 // info of the date
                 struct tm date = *(gmtime(&statFiles.st_mtime));
@@ -243,7 +243,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 strcat(buffer, info);
                 info[0] = 0;
                 strcat(buffer, "-");
-                sprintf(info, "%d", (int)date.tm_mon + 1);
+                sprintf(info, "%d", (int)date.tm_mon);
                 strcat(buffer, info);
                 info[0] = 0;
                 strcat(buffer, "-");
@@ -256,7 +256,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 strcat(buffer, dirStruct->d_name);
 
 
-                printf("%s\n", buffer);
+                //printf("%s\n", buffer);
                 strcat(buffer, "\0");
                 int size;
                 for(int i = 0; buffer[i] != '\0'; i++){
