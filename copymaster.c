@@ -32,6 +32,8 @@ void chmodFile(struct CopymasterOptions cpm_options);
 void truncateFile(struct CopymasterOptions cpm_options);
 void inodeFile(struct CopymasterOptions cpm_options);
 void linkFile(struct CopymasterOptions cpm_options);
+void directoryFile(struct CopymasterOptions cpm_options);
+
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
 
@@ -44,9 +46,9 @@ int main(int argc, char* argv[])
     //-------------------------------------------------------------------
     // Kontrola hodnot prepinacovs
 
-    int options = 14;
-    int legalOptions[options];
-    int givenOptions[options];
+    //int options = 14;
+    //int legalOptions[options];
+    //int givenOptions[options];
 
     //checkOptions(options, givenOptions, legalOptions);
     //-------------------------------------------------------------------
@@ -112,107 +114,7 @@ int main(int argc, char* argv[])
     // -D (--directory)
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
-
-        DIR *dirFile;
-        struct dirent *direntFile;
-        struct stat statFile;
-        char pathFile[100];
-        char buffer[200];
-        char words[10];
-
-        if(stat(cpm_options.infile, &statFile) < 0){
-            perror("chyba v stat()"); 
-        }
-
-        if (!S_ISDIR(statFile.st_mode)){
-            FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
-        }
-
-        dirFile = opendir(cpm_options.infile);
-
-        if(dirFile) {
-            while((direntFile = readdir(dirFile)) != NULL) {
-
-                if(strcmp(direntFile->d_name, "..") && strcmp(direntFile->d_name, ".")){
-                    
-                    strcat(pathFile, cpm_options.infile);
-                    strcat(pathFile, "/");
-                    strcat(pathFile, direntFile->d_name);
-
-                    struct stat statMain;
-                    if(stat(pathFile, &statMain) < 0){
-                        perror("chyba v stat()");
-                    }
-
-                    struct passwd* passwordUid = getpwuid(statMain.st_uid);
-                    struct group* groupUid = getgrgid(statMain.st_gid);
-
-                    if(direntFile->d_type == DT_DIR){
-                        strcat(buffer, "d");
-                    } else {
-                        strcat(buffer, "-");
-                    }
-                    
-                    // for owner of the file
-                    statMain.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statMain.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statMain.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
-                    // for group of the file
-                    statMain.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statMain.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statMain.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
-                    // for reader of the file
-                    statMain.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statMain.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statMain.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
-
-                    strcat(buffer, " ");
-                    sprintf(words, "%ld", (long)statMain.st_nlink);
-                    strcat(buffer, words);
-                    words[0] = 0;
-                    strcat(buffer, " ");
-
-                    if(passwordUid != NULL) {
-                        strcat(buffer, passwordUid->pw_name);
-                    } else{
-                        perror("passwordUid is null");
-                    }
-
-                    strcat(buffer, " ");
-
-                    if(groupUid != NULL){
-                        strcat(buffer, groupUid->gr_name);
-                    } else{
-                        perror("groupUid is null");
-                    }
-
-                    strcat(buffer, " ");
-                    sprintf(words, "%d", (int)statMain.st_size);
-                    strcat(buffer, words);
-                    words[0] = 0;
-                    strcat(buffer, "\t");
-
-                    //for time
-                    char time[32];
-                    strftime(time, 32, "%b %e %H:%M", localtime(&statMain.st_mtime));
-                    strcat(buffer, time);
-
-                    //for name of the file
-                    strcat(buffer, " ");
-                    strcat(buffer, direntFile->d_name);
-                    printf("%s\n", buffer);
-
-                    buffer[0] = 0;
-                    pathFile[0] = 0;
-                }
-            }
-            closedir(dirFile);
-
-        } else{
-            FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
-            closedir(dirFile);
-        }
-
+        directoryFile(cpm_options);
     }
 
     // -d (--delete)
@@ -238,11 +140,11 @@ int main(int argc, char* argv[])
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
     if(cpm_options.umask){
-        int infile = open(cpm_options.infile, O_RDONLY);
-        int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT);
-        mode_t newRights = umask(777);
+        //int infile = open(cpm_options.infile, O_RDONLY);
+        //int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT);
+        //mode_t newRights = umask(777);
 
-        umask(newRights);
+        //umask(newRights);
     }
 
         
@@ -253,6 +155,122 @@ int main(int argc, char* argv[])
     // TODO Implementovat osetrenie prepinacov po kopirovani
     
     return 0;
+}
+
+void directoryFile(struct CopymasterOptions cpm_options){
+    struct stat statDirectory;
+    struct dirent *dirStruct;
+    char info[10];
+    char buffer[200];
+
+    if(stat(cpm_options.infile, &statDirectory) < 0){
+        // no such file o directory
+        FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
+    }
+    if(!S_ISDIR(statDirectory.st_mode)){
+        FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
+    }
+
+    DIR* directory = opendir(cpm_options.infile);
+
+    int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, 0777);
+    if(outfile == -1){
+        FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
+    }
+
+    if(directory){
+        printf("Directory is opened, let's check it :D\n");
+
+        struct stat statFiles;
+
+        while((dirStruct = readdir(directory)) != NULL){
+                if(strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..")){
+                    char filePath[100];
+                    buffer[0] = 0;
+                    filePath[0] = 0;
+                    strcat(filePath, cpm_options.infile);
+                    strcat(filePath, "/");
+                    strcat(filePath, dirStruct->d_name);
+
+                    if(stat(filePath, &statFiles) < 0){
+                        perror("stat()"); // no such file o directory
+                    }
+
+                    if(dirStruct->d_type == DT_DIR){
+                        strcat(buffer, "d");
+                    } else {
+                        strcat(buffer, "-");
+                    }
+
+                    // rules for owner 
+                    statFiles.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
+                    // rules for groupe
+                    statFiles.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
+                    // rules for others
+                    statFiles.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
+                    statFiles.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
+
+                    // info of the links
+                    strcat(buffer, " ");
+                    sprintf(info, "%ld", (long)statFiles.st_nlink);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, " ");
+
+                    // info of the id owner + id group
+                    sprintf(info, "%d", (int)statFiles.st_uid);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, " ");
+                    sprintf(info, "%d", (int)statFiles.st_gid);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, " ");
+
+                    // info of the size files
+                    sprintf(info, "%d", (int)statFiles.st_size);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, "\t");
+
+                    // info of the date
+                    struct tm date = *(gmtime(&statFiles.st_mtime));
+
+                    sprintf(info, "%d", (int)date.tm_mday);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, "-");
+                    sprintf(info, "%d", (int)date.tm_mon + 1);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, "-");
+                    sprintf(info, "%d", (int)date.tm_year + 1900);
+                    strcat(buffer, info);
+                    info[0] = 0;
+                    strcat(buffer, " ");
+
+                    // info of the file's name
+                    strcat(buffer, dirStruct->d_name);
+
+
+                    printf("%s\n", buffer);
+                    strcat(buffer, "\n");
+                    write(outfile, buffer, 49);
+
+                    buffer[0] = 0;
+                    filePath[0] = 0;
+                }
+            }
+
+        closedir(directory);
+    }
+
+    close(outfile);
 }
 
 void openInfile(int *file, struct CopymasterOptions cpm_options, char flag){
@@ -276,6 +294,7 @@ void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
         FatalError(flag, "outfile", 21);
     }
 }
+
 
 void createFile(struct CopymasterOptions cpm_options){
     char buffer[3];
