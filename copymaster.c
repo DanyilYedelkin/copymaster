@@ -15,55 +15,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-mode_t PrepareUmask(mode_t mode, struct CopymasterOptions *cpm_options) {
-    char u;
-    char t;
-    char r;
-    char e = 0;
-    mode_t m;
-    mode_t M = mode;
-
-    for(int i = 0; cpm_options->umask_options[i][0]; i++){
-        u = cpm_options->umask_options[i][0];
-        t = cpm_options->umask_options[i][1];
-        r = cpm_options->umask_options[i][2];
-
-        if(r == 'x'){
-            m = 1;
-        } else if(r == 'w'){
-            m = 2;
-        } else if(r == 'r'){
-            m = 4;
-        } else{
-            e = 1;
-        }
-
-        if(u == 'o'){
-            m *= 1;
-        } else if(u == 'g'){
-            m *= 8;
-        } else if(u == 'u'){
-            m *= 64;
-        } else{
-            e = 1;
-        }
-
-        if (t == '-'){
-            M = M | m;
-        } else if(t == '+'){
-            M = M & (~m);
-        } else{
-            e = 1;
-        }
-    }
-
-    if(e){
-        M = 0;   
-    } 
-
-    return M;
-}
-
 
 void FatalError(char c, const char* msg, int exit_status);
 void PrintCopymasterOptions(struct CopymasterOptions* cpm_options);
@@ -164,7 +115,129 @@ int main(int argc, char* argv[])
     // -D (--directory)
     if (cpm_options.directory) {
         // TODO Implementovat vypis adresara
-        directoryFile(cpm_options);
+        //directoryFile(cpm_options);
+        struct stat statDirectory;
+    struct dirent *dirStruct;
+    char info[10];
+    char buffer[200];
+
+    if(stat(cpm_options.infile, &statDirectory) < 0){
+        // no such file o directory
+        FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
+    }
+    if(!S_ISDIR(statDirectory.st_mode)){
+        FatalError('D', "VSTUPNY SUBOR NIE JE ADRESAR", 28);
+    }
+
+    DIR* directory = opendir(cpm_options.infile);
+
+    int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT );
+    if(outfile == -1){
+        FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
+    }
+
+    if(directory){
+        //printf("Directory is opened, let's check it :D\n");
+
+        struct stat statFiles;
+
+        while((dirStruct = readdir(directory)) != NULL){
+            if(strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..")){
+                char filePath[100];
+                buffer[0] = 0;
+                filePath[0] = 0;
+                strcat(filePath, cpm_options.infile);
+                strcat(filePath, "/");
+                strcat(filePath, dirStruct->d_name);
+
+                if(stat(filePath, &statFiles) < 0){
+                    perror("stat()"); 
+                }
+
+                if(dirStruct->d_type == DT_DIR){
+                    strcat(buffer, "d");
+                } else{
+                    strcat(buffer, "-");
+                }
+
+                // rules for owner 
+                statFiles.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
+                // rules for groupe
+                statFiles.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
+                // rules for others
+                statFiles.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
+
+                // info of the links
+                strcat(buffer, " ");
+                sprintf(info, "%ld", (long)statFiles.st_nlink);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the id owner + id group
+                sprintf(info, "%d", (int)statFiles.st_uid);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+                sprintf(info, "%d", (int)statFiles.st_gid);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the size files
+                sprintf(info, "%d", (int)statFiles.st_size);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "\t");
+
+                // info of the date
+                struct tm date = *(gmtime(&statFiles.st_mtime));
+
+                sprintf(info, "%d", (int)date.tm_mday);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "-");
+                sprintf(info, "%d", (int)date.tm_mon + 1);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "-");
+                sprintf(info, "%d", (int)date.tm_year + 1900);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the file's name
+                strcat(buffer, dirStruct->d_name);
+
+
+                printf("%s\n", buffer);
+                strcat(buffer, "\0");
+                int size;
+                for(int i = 0; buffer[i] != '\0'; i++){
+                    size = i;
+                }
+                size += 1;
+                write(outfile, buffer, size);
+                if((dirStruct) != NULL){
+                    writeln(outfile);
+                }
+
+                buffer[0] = 0;
+                filePath[0] = 0;
+                size = 0;
+            }
+        }
+        int sizeOutfile = lseek(outfile, 0L, SEEK_END);
+        truncate(cpm_options.outfile, sizeOutfile - 2);
+        close(outfile);
+        closedir(directory);
+    }
     }
 
     // -d (--delete)
@@ -189,15 +262,9 @@ int main(int argc, char* argv[])
         linkFile(cpm_options);
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
+    //  -rwxr-x--x
     if(cpm_options.umask){
-        mode_t newRights = PrepareUmask( 0, &cpm_options);
-
-        newRights = umask(newRights);
-        printf("old umask:      %o\n", (unsigned int)newRights);
-
-        // apply -u value to old umask and set umask
-        newRights = umask(PrepareUmask(newRights, &cpm_options)); 
-        printf("new umask:    %o\n", (unsigned int)newRights);
+        
     }
 
     
