@@ -276,12 +276,11 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 size = 0;
             }
         }
+        int sizeOutfile = lseek(outfile, 0L, SEEK_END);
+        truncate(cpm_options.outfile, sizeOutfile - 2);
+        close(outfile);
         closedir(directory);
     }
-
-    int sizeOutfile = lseek(outfile, 0L, SEEK_END);
-    truncate(cpm_options.outfile, sizeOutfile - 2);
-    close(outfile);
 }
 
 void openInfile(int *file, struct CopymasterOptions cpm_options, char flag){
