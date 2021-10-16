@@ -180,7 +180,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
     }
 
     if(directory){
-        printf("Directory is opened, let's check it :D\n");
+        //printf("Directory is opened, let's check it :D\n");
 
         struct stat statFiles;
 
