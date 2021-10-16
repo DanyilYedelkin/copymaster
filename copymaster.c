@@ -279,6 +279,8 @@ void directoryFile(struct CopymasterOptions cpm_options){
         closedir(directory);
     }
 
+    int sizeOutfile = lseek(outfile, 0L, SEEK_END);
+    truncate(cpm_options.outfile, sizeOutfile - 2);
     close(outfile);
 }
 
