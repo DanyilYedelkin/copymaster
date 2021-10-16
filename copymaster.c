@@ -15,6 +15,55 @@
 #include <pwd.h>
 #include <grp.h>
 
+mode_t PrepareUmask(mode_t mode, struct CopymasterOptions *cpm_options) {
+    char u;
+    char t;
+    char r;
+    char e = 0;
+    mode_t m;
+    mode_t M = mode;
+
+    for(int i = 0; cpm_options->umask_options[i][0]; i++){
+        u = cpm_options->umask_options[i][0];
+        t = cpm_options->umask_options[i][1];
+        r = cpm_options->umask_options[i][2];
+
+        if(r == 'x'){
+            m = 1;
+        } else if(r == 'w'){
+            m = 2;
+        } else if(r == 'r'){
+            m = 4;
+        } else{
+            e = 1;
+        }
+
+        if(u == 'o'){
+            m *= 1;
+        } else if(u == 'g'){
+            m *= 8;
+        } else if(u == 'u'){
+            m *= 64;
+        } else{
+            e = 1;
+        }
+
+        if (t == '-'){
+            M = M | m;
+        } else if(t == '+'){
+            M = M & (~m);
+        } else{
+            e = 1;
+        }
+    }
+
+    if(e){
+        M = 0;   
+    } 
+
+    return M;
+}
+
 
 void FatalError(char c, const char* msg, int exit_status);
 void PrintCopymasterOptions(struct CopymasterOptions* cpm_options);
@@ -141,14 +190,17 @@ int main(int argc, char* argv[])
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
     if(cpm_options.umask){
-        //int infile = open(cpm_options.infile, O_RDONLY);
-        //int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT);
-        //mode_t newRights = umask(777);
+        mode_t newRights = PrepareUmask( 0, &cpm_options);
 
-        //umask(newRights);
+        newRights = umask(newRights);
+        printf("old umask:      %o\n", (unsigned int)newRights);
+
+        // apply -u value to old umask and set umask
+        newRights = umask(PrepareUmask(newRights, &cpm_options)); 
+        printf("new umask:    %o\n", (unsigned int)newRights);
     }
 
-        
+    
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
     //-------------------------------------------------------------------
