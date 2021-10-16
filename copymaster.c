@@ -171,8 +171,12 @@ void directoryFile(struct CopymasterOptions cpm_options){
 
     DIR* directory = opendir(cpm_options.infile);
 
-    int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, 0777);
-    if(outfile == -1){
+    //int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, 0777);
+    /*if(outfile == -1){
+        FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
+    }*/
+    FILE* outfile = fopen(cpm_options.outfile, "w");
+    if(outfile == NULL){
         FatalError('D', "VYSTUPNY SUBOR - CHYBA", 28);
     }
 
@@ -256,17 +260,19 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 strcat(buffer, dirStruct->d_name);
 
 
-                //printf("%s\n", buffer);
+                printf("%s\n", buffer);
                 strcat(buffer, "\0");
                 int size;
                 for(int i = 0; buffer[i] != '\0'; i++){
                     size = i;
                 }
                 size += 1;
-                write(outfile, buffer, size);
-                if((dirStruct) != NULL){
+                //write(outfile, buffer, size);
+                fprintf(outfile, buffer);
+                /*if((dirStruct) != NULL){
                     writeln(outfile);
-                }
+                }*/
+                fprintf(outfile, "\n");
 
                 buffer[0] = 0;
                 filePath[0] = 0;
@@ -275,7 +281,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
         }
         //int sizeOutfile = lseek(outfile, 0L, SEEK_END);
         //truncate(cpm_options.outfile, sizeOutfile - 2);
-        close(outfile);
+        fclose(outfile);
         closedir(directory);
     }
 }
