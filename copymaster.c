@@ -36,6 +36,7 @@ void directoryFile(struct CopymasterOptions cpm_options);
 
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
+int writeln(int file);
 
 void checkOptions(int optionsAmount, int givenOptions[], int legalOptions[]);
 
@@ -184,89 +185,97 @@ void directoryFile(struct CopymasterOptions cpm_options){
         struct stat statFiles;
 
         while((dirStruct = readdir(directory)) != NULL){
-                if(strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..")){
-                    char filePath[100];
-                    buffer[0] = 0;
-                    filePath[0] = 0;
-                    strcat(filePath, cpm_options.infile);
-                    strcat(filePath, "/");
-                    strcat(filePath, dirStruct->d_name);
+            if(strcmp(dirStruct->d_name, ".") && strcmp(dirStruct->d_name, "..")){
+                char filePath[100];
+                buffer[0] = 0;
+                filePath[0] = 0;
+                strcat(filePath, cpm_options.infile);
+                strcat(filePath, "/");
+                strcat(filePath, dirStruct->d_name);
 
-                    if(stat(filePath, &statFiles) < 0){
-                        perror("stat()"); // no such file o directory
-                    }
-
-                    if(dirStruct->d_type == DT_DIR){
-                        strcat(buffer, "d");
-                    } else {
-                        strcat(buffer, "-");
-                    }
-
-                    // rules for owner 
-                    statFiles.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
-                    // rules for groupe
-                    statFiles.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
-                    // rules for others
-                    statFiles.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
-                    statFiles.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
-
-                    // info of the links
-                    strcat(buffer, " ");
-                    sprintf(info, "%ld", (long)statFiles.st_nlink);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, " ");
-
-                    // info of the id owner + id group
-                    sprintf(info, "%d", (int)statFiles.st_uid);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, " ");
-                    sprintf(info, "%d", (int)statFiles.st_gid);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, " ");
-
-                    // info of the size files
-                    sprintf(info, "%d", (int)statFiles.st_size);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, "\t");
-
-                    // info of the date
-                    struct tm date = *(gmtime(&statFiles.st_mtime));
-
-                    sprintf(info, "%d", (int)date.tm_mday);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, "-");
-                    sprintf(info, "%d", (int)date.tm_mon + 1);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, "-");
-                    sprintf(info, "%d", (int)date.tm_year + 1900);
-                    strcat(buffer, info);
-                    info[0] = 0;
-                    strcat(buffer, " ");
-
-                    // info of the file's name
-                    strcat(buffer, dirStruct->d_name);
-
-
-                    printf("%s\n", buffer);
-                    strcat(buffer, "\n");
-                    write(outfile, buffer, 49);
-
-                    buffer[0] = 0;
-                    filePath[0] = 0;
+                if(stat(filePath, &statFiles) < 0){
+                    perror("stat()"); 
                 }
-            }
 
+                if(dirStruct->d_type == DT_DIR){
+                    strcat(buffer, "d");
+                } else{
+                    strcat(buffer, "-");
+                }
+
+                // rules for owner 
+                statFiles.st_mode & S_IRUSR ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWUSR ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXUSR ? strcat(buffer, "x") : strcat(buffer, "-");
+                // rules for groupe
+                statFiles.st_mode & S_IRGRP ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWGRP ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXGRP ? strcat(buffer, "x") : strcat(buffer, "-");
+                // rules for others
+                statFiles.st_mode & S_IROTH ? strcat(buffer, "r") : strcat(buffer, "-");
+                statFiles.st_mode & S_IWOTH ? strcat(buffer, "w") : strcat(buffer, "-");
+                statFiles.st_mode & S_IXOTH ? strcat(buffer, "x") : strcat(buffer, "-");
+
+                // info of the links
+                strcat(buffer, " ");
+                sprintf(info, "%ld", (long)statFiles.st_nlink);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the id owner + id group
+                sprintf(info, "%d", (int)statFiles.st_uid);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+                sprintf(info, "%d", (int)statFiles.st_gid);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the size files
+                sprintf(info, "%d", (int)statFiles.st_size);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "\t");
+
+                // info of the date
+                struct tm date = *(gmtime(&statFiles.st_mtime));
+
+                sprintf(info, "%d", (int)date.tm_mday);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "-");
+                sprintf(info, "%d", (int)date.tm_mon + 1);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, "-");
+                sprintf(info, "%d", (int)date.tm_year + 1900);
+                strcat(buffer, info);
+                info[0] = 0;
+                strcat(buffer, " ");
+
+                // info of the file's name
+                strcat(buffer, dirStruct->d_name);
+
+
+                printf("%s\n", buffer);
+                strcat(buffer, "\0");
+                int size;
+                for(int i = 0; buffer[i] != '\0'; i++){
+                    size = i;
+                }
+                size += 1;
+                write(outfile, buffer, size);
+                if((dirStruct) != NULL){
+                    writeln(outfile);
+                }
+
+                buffer[0] = 0;
+                filePath[0] = 0;
+                size = 0;
+            }
+        }
         closedir(directory);
     }
 
@@ -534,7 +543,17 @@ void linkFile(struct CopymasterOptions cpm_options){
     } else{
         FatalError('K', "INA CHYBA", 30);
     }
+}
 
+int writeln(int file){
+    if (file == -1){
+        return -1;
+    } 
+    char c[2];  
+    c[0] = 13; 
+    c[1] = 10;
+
+    return write(file, c, 2);
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
