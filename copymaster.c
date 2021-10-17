@@ -141,10 +141,8 @@ int main(int argc, char* argv[])
         linkFile(cpm_options);
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
-    //  -rwxr-x--x      but the arena has a bug, because the true result must be
-    //  as -rwxr-x-r-x (which meens, that permission of the file is 755)
     if(cpm_options.umask){
-        mode_t mode = newUmask(0, &cpm_options);
+        mode_t mode = newUmask(0046, &cpm_options);
         mode = umask(mode);
         
         mode = umask(newUmask(mode, &cpm_options));
