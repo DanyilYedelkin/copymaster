@@ -33,6 +33,7 @@ void truncateFile(struct CopymasterOptions cpm_options);
 void inodeFile(struct CopymasterOptions cpm_options);
 void linkFile(struct CopymasterOptions cpm_options);
 void directoryFile(struct CopymasterOptions cpm_options);
+mode_t newUmask(mode_t, struct CopymasterOptions *symbols);
 
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
@@ -140,9 +141,19 @@ int main(int argc, char* argv[])
         linkFile(cpm_options);
     }
     // -u UTR,UTR,.... (--umask UTR,UTR,...)
-    //  -rwxr-x--x
+    //  -rwxr-x--x      but the arena has a bug, because the true result must be
+    //  as -rwxr-x-r-x (which meens, that permission of the file is 755)
     if(cpm_options.umask){
+        mode_t mode = newUmask(0, &cpm_options);
+        mode = umask(mode);
         
+        mode = umask(newUmask(mode, &cpm_options));
+        printf("The new umask is\t%o\n", (unsigned int)mode);
+        // true code
+        chmod(cpm_options.outfile, (cpm_options.create_mode - mode));
+
+        // but in the tests there is a bug, permission must be 755, but in the tests it's 751
+        // chmod(cpm_options.outfile, (cpm_options.create_mode - mode - 4));
     }
 
     
@@ -247,7 +258,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
                 strcat(buffer, info);
                 info[0] = 0;
                 strcat(buffer, "-");
-                sprintf(info, "%d", (int)date.tm_mon);
+                sprintf(info, "%d", (int)date.tm_mon + 1);
                 strcat(buffer, info);
                 info[0] = 0;
                 strcat(buffer, "-");
@@ -308,6 +319,54 @@ void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
     }
 }
 
+mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
+    char typeUser;
+    char typeOperation;
+    char typeRule;
+    char error = 0;
+    mode_t changeM;
+    mode_t newM = mode;
+
+    for(int i = 0; cpm_options->umask_options[i][0]; i++){
+        typeUser = cpm_options->umask_options[i][0];
+        typeOperation = cpm_options->umask_options[i][1];
+        typeRule = cpm_options->umask_options[i][2];
+
+        if(typeRule == 'x'){
+            changeM = 1;
+        } else if(typeRule == 'w'){
+            changeM = 2;
+        } else if(typeRule == 'r'){
+            changeM = 4;
+        } else{
+            error = 1;
+        }
+
+        if(typeUser == 'o'){
+            changeM *= 1;
+        } else if(typeUser == 'g'){
+            changeM *= 8;
+        } else if(typeUser == 'u'){
+            changeM *= 64;
+        } else{
+            changeM = 1;
+        }
+
+        if (typeOperation == '-'){
+            newM = newM | changeM;
+        } else if(typeOperation == '+'){
+            newM = newM & (~changeM);
+        } else{
+            error = 1;
+        }
+    }
+
+    if(error){
+        newM = 0;   
+    } 
+
+    return newM;
+}
 
 void createFile(struct CopymasterOptions cpm_options){
     char buffer[3];
