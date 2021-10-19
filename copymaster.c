@@ -48,9 +48,48 @@ int main(int argc, char* argv[])
     //-------------------------------------------------------------------
     // Kontrola hodnot prepinacovs
 
-    //int options = 14;
-    //int legalOptions[options];
-    //int givenOptions[options];
+    
+    if (cpm_options.fast && cpm_options.slow) {
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.create && cpm_options.overwrite){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.append && cpm_options.overwrite){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.create && cpm_options.append){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.truncate && cpm_options.delete_opt){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.sparse && (cpm_options.slow || cpm_options.fast || cpm_options.create ||
+                cpm_options.overwrite || cpm_options.append || cpm_options.lseek || cpm_options.directory ||
+                cpm_options.delete_opt || cpm_options.inode || cpm_options.chmod || cpm_options.umask ||
+                cpm_options.truncate || cpm_options.link)){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.directory && (cpm_options.slow || cpm_options.fast || cpm_options.create ||
+                cpm_options.overwrite || cpm_options.append || cpm_options.lseek || cpm_options.sparse ||
+                cpm_options.delete_opt || cpm_options.inode || cpm_options.chmod || cpm_options.umask ||
+                cpm_options.truncate || cpm_options.link)){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    /*if (cpm_options.link && (cpm_options.slow || cpm_options.fast || cpm_options.create ||
+                cpm_options.overwrite || cpm_options.append || cpm_options.lseek || cpm_options.directory ||
+                cpm_options.delete_opt || cpm_options.inode || cpm_options.chmod || cpm_options.umask ||
+                cpm_options.truncate || cpm_options.sparse)){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }*/
 
     //checkOptions(options, givenOptions, legalOptions);
     //-------------------------------------------------------------------
@@ -92,10 +131,26 @@ int main(int argc, char* argv[])
     // Osetrenie prepinacov pred kopirovanim
     //-------------------------------------------------------------------
     
-    if (cpm_options.fast && cpm_options.slow) {
+    /*if (cpm_options.fast && cpm_options.slow) {
         fprintf(stderr, "CHYBA PREPINACOV\n"); 
         exit(EXIT_FAILURE);
     }
+    if (cpm_options.create && cpm_options.overwrite){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.append && cpm_options.overwrite){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.create && cpm_options.append){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }
+    if (cpm_options.truncate && cpm_options.delete_opt){
+        fprintf(stderr, "CHYBA PREPINACOV\n"); 
+        exit(EXIT_FAILURE);
+    }*/
 
     
     // TODO Nezabudnut dalsie kontroly kombinacii prepinacov ...
@@ -360,6 +415,7 @@ mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
     }
 
     if(error){
+        FatalError('u', "ZLA MASKA", 32);
         newM = 0;   
     } 
 
