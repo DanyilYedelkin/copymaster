@@ -209,7 +209,9 @@ int main(int argc, char* argv[])
         // chmod(cpm_options.outfile, (cpm_options.create_mode - mode - 4));
     }
 
-    
+    if(cpm_options.sparse){
+        fastCopy(cpm_options, 'S');
+    }
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
     //-------------------------------------------------------------------
