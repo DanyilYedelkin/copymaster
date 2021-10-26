@@ -212,22 +212,32 @@ int main(int argc, char* argv[])
     if(cpm_options.sparse){
         //fastCopy(cpm_options, 'S');
 
-        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-        int file = open(cpm_options.outfile, O_WRONLY | O_CREAT, mode);
-        if(file == -1){
+        //mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        char buffer[1];
+        int outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT, 0666);
+        if(outfile == -1){
             FatalError('S', "RIEDKY SUBOR NEVYTVORENY", 41);
         }
-        fastCopy(cpm_options, 'S');
-        //int infile = open(cpm_options.infile, O_RDONLY, mode);
+        int infile = open(cpm_options.infile, O_RDONLY);
+        //fastCopy(cpm_options, 'S');
+        //for copy infile to outfile (slow copy)
+        while(read(infile, &buffer, 1) > 0){
+            if(buffer[0] != '\0'){
+                write(outfile, &buffer, 1);
+            } else{
+                write(infile, &buffer, 1);
+            }
+        }
 
-        struct stat statFiles;
-        stat(cpm_options.infile, &statFiles);
-        off_t size = statFiles.st_size;
+        struct stat statFile;
+        stat(cpm_options.infile, &statFile);
+        off_t size = statFile.st_size;
 
-        ftruncate(file, size);
+        //ftruncate(outfile, size);     //probably there's some problems
+        truncate(cpm_options.outfile, size);
 
-        close(file);
-        //close(infile);
+        close(outfile);
+        close(infile);
     }
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
