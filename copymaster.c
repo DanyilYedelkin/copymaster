@@ -210,7 +210,18 @@ int main(int argc, char* argv[])
     }
 
     if(cpm_options.sparse){
+        //fastCopy(cpm_options, 'S');
+
+        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        int file = open(cpm_options.outfile, O_WRONLY | O_CREAT, mode);
+        if(file == -1){
+            FatalError('S', "RIEDKY SUBOR NEVYTVORENY", 41);
+        }
         fastCopy(cpm_options, 'S');
+
+        ftruncate(file, 0x100000);
+
+        close(file);
     }
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
