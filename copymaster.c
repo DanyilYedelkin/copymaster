@@ -218,10 +218,16 @@ int main(int argc, char* argv[])
             FatalError('S', "RIEDKY SUBOR NEVYTVORENY", 41);
         }
         fastCopy(cpm_options, 'S');
+        //int infile = open(cpm_options.infile, O_RDONLY, mode);
 
-        ftruncate(file, 0x100000);
+        struct stat statFiles;
+        stat(cpm_options.infile, &statFiles);
+        off_t size = statFiles.st_size;
+
+        ftruncate(file, size);
 
         close(file);
+        //close(infile);
     }
     //-------------------------------------------------------------------
     // Osetrenie prepinacov po kopirovani
