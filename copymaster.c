@@ -220,13 +220,9 @@ int main(int argc, char* argv[])
         }
         int infile = open(cpm_options.infile, O_RDONLY);
         //fastCopy(cpm_options, 'S');
-        //for copy infile to outfile (slow copy)
+        //to copy the contents of infile to outfile (slow copy)
         while(read(infile, &buffer, 1) > 0){
-            if(buffer[0] != '\0'){
-                write(outfile, &buffer, 1);
-            } else{
-                write(infile, &buffer, 1);
-            }
+            write(outfile, &buffer, 1);
         }
 
         struct stat statFile;
