@@ -222,7 +222,11 @@ int main(int argc, char* argv[])
         //fastCopy(cpm_options, 'S');
         //to copy the contents of infile to outfile (slow copy)
         while(read(infile, &buffer, 1) > 0){
-            write(outfile, &buffer, 1);
+            if(buffer[0] != '\0'){
+                write(outfile, &buffer, 1);
+            } else{
+                write(infile, &buffer, 1);
+            }
         }
 
         struct stat statFile;
