@@ -21,8 +21,6 @@ void PrintCopymasterOptions(struct CopymasterOptions* cpm_options);
 
 void fastCopy(struct CopymasterOptions cpm_options, char flag);
 void slowCopy(struct CopymasterOptions cmp_options);
-void openInfile(int *file, struct CopymasterOptions cpm_options, char flag);
-void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag);
 void createFile(struct CopymasterOptions cpm_options);
 void overwriteFile(struct CopymasterOptions cpm_options);
 void appendFile(struct CopymasterOptions cpm_options);
@@ -37,7 +35,6 @@ mode_t newUmask(mode_t, struct CopymasterOptions *symbols);
 
 int regularFile(const char *path);
 bool checkOpen(int infile, int outfile);
-int writeln(int file);
 
 void checkOptions(int optionsAmount, int givenOptions[], int legalOptions[]);
 
@@ -379,28 +376,6 @@ void directoryFile(struct CopymasterOptions cpm_options){
     }
 }
 
-void openInfile(int *file, struct CopymasterOptions cpm_options, char flag){
-    /**file = open(cpm_options.infile, O_RDONLY) == -1;
-
-    if(*file == -1){
-        FatalError(flag, "infile", 21);
-    }*/
-    if((*file = open(cpm_options.infile, O_RDONLY)) == -1){
-        FatalError(flag, "infile", 21);
-    }
-}
-
-void openOutfile(int *file, struct CopymasterOptions cpm_options, char flag){
-    /**file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-
-    if(*file == -1){
-        FatalError(flag, "infile", 21);
-    }*/
-    if((*file = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1){
-        FatalError(flag, "outfile", 21);
-    }
-}
-
 mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
     char typeUser;
     char typeOperation;
@@ -457,9 +432,11 @@ void createFile(struct CopymasterOptions cpm_options){
     int infile;
     int outfile;
 
-    openInfile(&infile, cpm_options, 'c');
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('c', "INA CHYBA", 23);
+    }
 
-    umask(0);
+    umask(0);   //change file's mask
 
     if(cpm_options.create_mode > 777 || cpm_options.create_mode < 1){
         FatalError('c', "ZLE PRAVA", 23);
@@ -486,7 +463,9 @@ void overwriteFile(struct CopymasterOptions cpm_options){
     int infile;
     int outfile;
 
-    openInfile(&infile, cpm_options, 'o');
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('o', "INA CHYBA", 24);
+    }
 
     if((outfile = open(cpm_options.outfile, O_WRONLY | O_TRUNC)) == -1){
         FatalError('o', "SUBOR NEEXISTUJE", 24);
@@ -506,7 +485,9 @@ void appendFile(struct CopymasterOptions cpm_options){
     int infile;
     int outfile;
 
-    openInfile(&infile, cpm_options, 'a');
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('a', "INA CHYBA", 22);
+    }
 
     if((outfile = open(cpm_options.outfile, O_WRONLY | O_APPEND)) == -1){
         FatalError('a', "SUBOR NEEXISTUJE", 22);
@@ -526,8 +507,13 @@ void fastCopy(struct CopymasterOptions cpm_options, char flag){
     int outfile;
     int words;
 
-    openInfile(&infile, cpm_options, flag);
-    openOutfile(&outfile, cpm_options, flag);
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError(flag, "INA CHYBA", 21);
+    }
+    if((outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1){
+        FatalError(flag, "INA CHYBA", 21);
+    }
+
     
     lengthBuffer = lseek(infile, 0, SEEK_END);
     char buffer[lengthBuffer];
@@ -546,8 +532,12 @@ void slowCopy(struct CopymasterOptions cpm_options){
     int outfile;
     int words;
 
-    openInfile(&infile, cpm_options, 's');
-    openOutfile(&outfile, cpm_options, 's');
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('s', "INA CHYBA", 21);
+    }
+    if((outfile = open(cpm_options.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1){
+        FatalError('s', "INA CHYBA", 21);
+    }
 
     while((words = read(infile, &buffer, 1)) > 0){
         write(outfile, &buffer, words);
@@ -568,10 +558,11 @@ void lseekFile(struct CopymasterOptions cpm_options){
     int bytesOfRead;
     int bytesOfWrite;
 
-    openInfile(&infile, cpm_options, 'l');
-
+    if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
+        FatalError('l', "INA CHYBA", 33);
+    }
     if((outfile = open(cpm_options.outfile, O_WRONLY)) == -1){
-        FatalError('l', "SUBOR NEEXISTUJE", 33);
+        FatalError('l', "INA CHYBA", 33);
     }
     if(lseek(infile, cpm_options.lseek_options.pos1, SEEK_SET) == -1){
         FatalError('l', "CHYBA POZICIE infile", 33);
@@ -689,17 +680,6 @@ void linkFile(struct CopymasterOptions cpm_options){
     } else{
         FatalError('K', "INA CHYBA", 30);
     }
-}
-
-int writeln(int file){
-    if (file == -1){
-        return -1;
-    } 
-    char c[2];  
-    c[0] = 13; 
-    c[1] = 10;
-
-    return write(file, c, 2);
 }
 
 //https://stackoverflow.com/questions/40163270/what-is-s-isreg-and-what-does-it-do
