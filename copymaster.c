@@ -198,7 +198,6 @@ int main(int argc, char* argv[])
         mode = umask(mode);
         
         mode = umask(newUmask(mode, &cpm_options));
-        printf("The new umask is\t%o\n", (unsigned int)mode);
         // true code
         chmod(cpm_options.outfile, (cpm_options.create_mode - mode));
 
@@ -216,7 +215,6 @@ int main(int argc, char* argv[])
             FatalError('S', "RIEDKY SUBOR NEVYTVORENY", 41);
         }
         int infile = open(cpm_options.infile, O_RDONLY);
-        //fastCopy(cpm_options, 'S');
         //to copy the contents of infile to outfile (slow copy)
         while(read(infile, &buffer, 1) > 0){
             if(buffer[0] != '\0'){
@@ -376,6 +374,7 @@ void directoryFile(struct CopymasterOptions cpm_options){
     }
 }
 
+//https://handynotes.ru/2010/02/umask.html
 mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
     char typeUser;
     char typeOperation;
@@ -396,7 +395,7 @@ mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
         } else if(typeRule == 'r'){
             changeM = 4;
         } else{
-            error = 1;
+            error += 1;
         }
 
         if(typeUser == 'o'){
@@ -409,16 +408,17 @@ mode_t newUmask(mode_t mode, struct CopymasterOptions *cpm_options){
             changeM = 1;
         }
 
+        //https://handynotes.ru/2010/02/umask.html
         if (typeOperation == '-'){
             newM = newM | changeM;
         } else if(typeOperation == '+'){
             newM = newM & (~changeM);
         } else{
-            error = 1;
+            error += 1;
         }
     }
 
-    if(error){
+    if(error > 0){
         FatalError('u', "ZLA MASKA", 32);
         newM = 0;   
     } 
@@ -435,8 +435,6 @@ void createFile(struct CopymasterOptions cpm_options){
     if((infile = open(cpm_options.infile, O_RDONLY)) == -1){
         FatalError('c', "INA CHYBA", 23);
     }
-
-    umask(0);   //change file's mask
 
     if(cpm_options.create_mode > 777 || cpm_options.create_mode < 1){
         FatalError('c', "ZLE PRAVA", 23);
