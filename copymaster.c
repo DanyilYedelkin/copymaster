@@ -80,15 +80,7 @@ int main(int argc, char* argv[])
         fprintf(stderr, "CHYBA PREPINACOV\n"); 
         exit(EXIT_FAILURE);
     }
-    /*if (cpm_options.link && (cpm_options.slow || cpm_options.fast || cpm_options.create ||
-                cpm_options.overwrite || cpm_options.append || cpm_options.lseek || cpm_options.directory ||
-                cpm_options.delete_opt || cpm_options.inode || cpm_options.chmod || cpm_options.umask ||
-                cpm_options.truncate || cpm_options.sparse)){
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }*/
 
-    //checkOptions(options, givenOptions, legalOptions);
     //-------------------------------------------------------------------
 
     // Vypis hodnot prepinacov odstrante z finalnej verzie
@@ -123,43 +115,7 @@ int main(int argc, char* argv[])
     if(cpm_options.lseek){
         lseekFile(cpm_options);
     }
-    
-    //-------------------------------------------------------------------
-    // Osetrenie prepinacov pred kopirovanim
-    //-------------------------------------------------------------------
-    
-    /*if (cpm_options.fast && cpm_options.slow) {
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }
-    if (cpm_options.create && cpm_options.overwrite){
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }
-    if (cpm_options.append && cpm_options.overwrite){
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }
-    if (cpm_options.create && cpm_options.append){
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }
-    if (cpm_options.truncate && cpm_options.delete_opt){
-        fprintf(stderr, "CHYBA PREPINACOV\n"); 
-        exit(EXIT_FAILURE);
-    }*/
 
-    
-    // TODO Nezabudnut dalsie kontroly kombinacii prepinacov ...
-    
-    //-------------------------------------------------------------------
-    // Kopirovanie suborov
-    //-------------------------------------------------------------------
-    
-    // TODO Implementovat kopirovanie suborov
-    
-    // cpm_options.infile
-    // cpm_options.outfile
     
     //-------------------------------------------------------------------
     // Vypis adresara
